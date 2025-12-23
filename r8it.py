@@ -9,6 +9,7 @@ from packaging import version as pkg_version
 from r8lib import IndustryFile, Industry
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QPushButton, QHBoxLayout, QWidget
+from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt, QFileSystemWatcher, QTimer
 from mainWindow_ui import Ui_MainWindow
 from mainTable import DictTableModel
@@ -80,6 +81,11 @@ class MainWindow(QMainWindow):
 
         # Set window title with version
         self.setWindowTitle(f"Run8 Industry Tool - v{VERSION}")
+
+        # Set window icon
+        icon_path = resource_path('app_icon.ico')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
         # Track the currently loaded file
         self.current_filename = None
