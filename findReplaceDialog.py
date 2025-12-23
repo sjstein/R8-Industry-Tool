@@ -129,10 +129,12 @@ class FindReplaceDialog(QDialog):
         matches = []
         model = self.main_window.table_model
 
-        for row in range(model.rowCount()):
-            cell_value = model.data(model.index(row, col_index), Qt.ItemDataRole.DisplayRole)
+        for display_row in range(model.rowCount()):
+            cell_value = model.data(model.index(display_row, col_index), Qt.ItemDataRole.DisplayRole)
             if cell_value == search_text:  # Exact match only
-                matches.append(row)
+                # Store the original index, not the display row
+                original_index = model.get_original_index(display_row)
+                matches.append(original_index)
 
         return matches
 
@@ -207,10 +209,13 @@ class FindReplaceDialog(QDialog):
             )
         else:
             # Handle regular column matches - select row in table
-            row = match
+            original_index = match
+            # Convert original index to display row
+            display_row = self.main_window.table_model._original_indices.index(original_index)
+
             table_view = self.main_window.ui.tableView
-            model_index = self.main_window.table_model.index(row, self.get_column_index())
-            table_view.selectRow(row)
+            model_index = self.main_window.table_model.index(display_row, self.get_column_index())
+            table_view.selectRow(display_row)
             table_view.scrollTo(model_index)
 
             # Enable replace button
@@ -249,8 +254,8 @@ class FindReplaceDialog(QDialog):
             )
         else:
             # Handle regular column replacement
-            row = match
-            industry = indFile1.industries[row]
+            original_index = match
+            industry = indFile1.industries[original_index]
 
             if field_name == "Tag":
                 industry.replaceSymbol(replace_text)
@@ -265,9 +270,13 @@ class FindReplaceDialog(QDialog):
 
         # Mark the row as dirty (unsaved changes)
         if field_name == "Outbound tags in all industries":
-            self.main_window.table_model.mark_row_dirty(match['industry_idx'])
+            # Convert original index to display row
+            display_row = self.main_window.table_model._original_indices.index(match['industry_idx'])
+            self.main_window.table_model.mark_row_dirty(display_row)
         else:
-            self.main_window.table_model.mark_row_dirty(row)
+            # Convert original index to display row
+            display_row = self.main_window.table_model._original_indices.index(original_index)
+            self.main_window.table_model.mark_row_dirty(display_row)
 
         # Remove this match from the list
         self.matches.pop(self.current_match_index)
@@ -342,13 +351,14 @@ class FindReplaceDialog(QDialog):
                 f"Replaced {len(matches)} tag occurrences", 5000
             )
 
-            # Mark all affected industries as dirty
+            # Mark all affected industries as dirty (convert to display rows after refresh)
             for industry_idx in affected_industries:
-                self.main_window.table_model.mark_row_dirty(industry_idx)
+                display_row = self.main_window.table_model._original_indices.index(industry_idx)
+                self.main_window.table_model.mark_row_dirty(display_row)
         else:
             # Replace all column occurrences
-            for row in matches:
-                industry = indFile1.industries[row]
+            for original_index in matches:
+                industry = indFile1.industries[original_index]
                 if field_name == "Tag":
                     industry.replaceSymbol(replace_text)
                 elif field_name == "Local Name":
@@ -357,9 +367,10 @@ class FindReplaceDialog(QDialog):
             QMessageBox.information(self, "Replace All", f"Replaced {len(matches)} occurrences.")
             self.main_window.statusBar().showMessage(f"Replaced {len(matches)} occurrences", 5000)
 
-            # Mark all affected rows as dirty
-            for row in matches:
-                self.main_window.table_model.mark_row_dirty(row)
+            # Mark all affected rows as dirty (convert to display rows after refresh)
+            for original_index in matches:
+                display_row = self.main_window.table_model._original_indices.index(original_index)
+                self.main_window.table_model.mark_row_dirty(display_row)
 
         # Refresh the table
         industry_data = [ind.to_dict() for ind in indFile1.industries]

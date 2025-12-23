@@ -212,19 +212,24 @@ class MainWindow(QMainWindow):
         if not index.isValid():
             return
 
-        row = index.row()
-        if row < len(indFile1.industries):
-            industry = indFile1.industries[row]
+        display_row = index.row()
+        # Get the original index in the data structure (before sorting)
+        original_index = self.table_model.get_original_index(display_row)
 
-            # Open the detail dialog, passing the row index
-            dialog = IndustryDetailDialog(industry, cardict, self, industry_row=row)
+        if original_index < len(indFile1.industries):
+            industry = indFile1.industries[original_index]
+
+            # Open the detail dialog, passing the original index
+            dialog = IndustryDetailDialog(industry, cardict, self, industry_row=original_index)
             result = dialog.exec()
 
             # If user clicked Save, refresh the table and mark as dirty
             if result == IndustryDetailDialog.DialogCode.Accepted:
                 industry_data = [ind.to_dict() for ind in indFile1.industries]
                 self.table_model.update_data(industry_data)
-                self.table_model.mark_row_dirty(row)  # Mark this industry as having unsaved changes
+                # Find the new display row for this original index after re-sorting
+                new_display_row = self.table_model._original_indices.index(original_index)
+                self.table_model.mark_row_dirty(new_display_row)  # Mark this industry as having unsaved changes
                 self.statusBar().showMessage(f'Updated: {industry.name}', 3000)
 
     def show_instructions(self):

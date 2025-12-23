@@ -8,6 +8,7 @@ class DictTableModel(QAbstractTableModel):
         self._data = data or []
         self._headers = list(self._data[0].keys()) if self._data else []
         self._dirty_rows = set()  # Track rows with unsaved changes
+        self._original_indices = []  # Map display row to original data structure index
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._data)
@@ -47,11 +48,36 @@ class DictTableModel(QAbstractTableModel):
         self.endInsertRows()
 
     def update_data(self, new_data):
-        """Replace all data"""
+        """Replace all data and sort by industry name"""
         self.beginResetModel()
-        self._data = new_data
+
+        # Create list of (index, data) tuples to preserve original indices
+        indexed_data = list(enumerate(new_data))
+
+        # Sort by industry name (first column, key 'Industry Name')
+        if indexed_data and 'Industry Name' in indexed_data[0][1]:
+            indexed_data.sort(key=lambda x: x[1]['Industry Name'].lower())
+
+        # Separate the sorted data and original indices
+        self._original_indices = [idx for idx, _ in indexed_data]
+        self._data = [data for _, data in indexed_data]
+
         self._headers = list(new_data[0].keys()) if new_data else []
+
+        # Remap dirty rows to new display positions
+        if self._dirty_rows:
+            # Create reverse mapping: original_index -> display_row
+            reverse_map = {orig_idx: display_row for display_row, orig_idx in enumerate(self._original_indices)}
+            # Update dirty rows to use display row indices
+            self._dirty_rows = {reverse_map[orig_idx] for orig_idx in self._dirty_rows if orig_idx in reverse_map}
+
         self.endResetModel()
+
+    def get_original_index(self, display_row):
+        """Get the original data structure index for a display row"""
+        if 0 <= display_row < len(self._original_indices):
+            return self._original_indices[display_row]
+        return display_row  # Fallback to display row if mapping doesn't exist
 
     def mark_row_dirty(self, row):
         """Mark a row as having unsaved changes"""
