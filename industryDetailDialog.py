@@ -216,12 +216,20 @@ class IndustryDetailDialog(QDialog):
     def save_producers(self):
         """Save producers from table to industry object"""
         # Update existing producers (preserving rec_type and other internal fields)
-        for i in range(min(self.ui.producers_table.rowCount(), len(self.industry.producer))):
-            prod = self.industry.producer[i]
-
-            # bIndex (car type) - read from column 0 (read-only but we still read it)
+        # NOTE: Table displays producers in sorted order, but we need to match by bIndex
+        for i in range(self.ui.producers_table.rowCount()):
+            # Get the car type ID from the table row
             bIndex = int(self.ui.producers_table.item(i, 0).text())
-            prod.bIndex = bIndex
+
+            # Find the producer with this bIndex in the original list
+            prod = None
+            for p in self.industry.producer:
+                if p.bIndex == bIndex:
+                    prod = p
+                    break
+
+            if prod is None:
+                continue  # Skip if producer not found (shouldn't happen)
 
             # Parse tags (space or comma separated) - column 2
             tags_text = self.ui.producers_table.item(i, 2).text().strip()

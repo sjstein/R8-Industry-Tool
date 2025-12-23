@@ -341,15 +341,41 @@ class producer:
         ptr += INTLEN
         self.num_tags = int.from_bytes(mem_map[ptr:ptr + INTLEN], 'little', signed=True)
         ptr += INTLEN
+        # Always initialize tags list (even if empty)
+        self.tags = list()
         if self.num_tags > 0:
-            self.tags = list()
+            temp_tags = []
             for i in range(self.num_tags):
-                self.tags.append(industry_tag(mem_map, ptr))
-                ptr += len(self.tags[-1])
+                temp_tags.append(industry_tag(mem_map, ptr))
+                ptr += len(temp_tags[-1])
+
+            # Split tags that contain spaces into separate tags
+            # (Legacy files may have space-delimited tags stored as single tag names)
+            for tag in temp_tags:
+                if ' ' in tag.name:
+                    # Tag name contains spaces - split into separate tags
+                    tag_names = tag.name.split()
+                    for tag_name in tag_names:
+                        # Create a new tag for each space-separated word
+                        tag_data = bytearray()
+                        enc_tag = encode_run8string(tag_name)
+                        tag_len = len(enc_tag)
+                        tag_data.extend(tag_len.to_bytes(INTLEN, 'little', signed=True))
+                        tag_data.extend(enc_tag)
+                        new_tag = industry_tag(tag_data, 0)
+                        self.tags.append(new_tag)
+                else:
+                    # Single word tag - use as-is
+                    self.tags.append(tag)
+
+            # Update num_tags to reflect the actual number after splitting
+            self.num_tags = len(self.tags)
+
         self.num_filters = int.from_bytes(mem_map[ptr:ptr + INTLEN], 'little', signed=True)
         ptr += INTLEN
+        # Always initialize filter list (even if empty)
+        self.filter = list()
         if self.num_filters > 0:
-            self.filter = list()
             for i in range(self.num_filters):
                 self.filter.append(industry_filter(mem_map, ptr))
                 ptr += len(self.filter[-1])
