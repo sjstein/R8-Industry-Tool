@@ -362,8 +362,8 @@ class producer:
     def returnTags(self):
         retStr = ''
         for tag in self.tags:
-            retStr += f'{tag.name} '
-        return retStr[:-1]
+            retStr += f'{tag.name}, '
+        return retStr[:-2] if retStr else ''
 
     def deleteTag(self, tag):
         for i in range(self.num_tags):

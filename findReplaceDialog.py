@@ -244,14 +244,21 @@ class FindReplaceDialog(QDialog):
         if field_name == "Outbound tags in all industries":
             industry = indFile1.industries[match['industry_idx']]
             producer = industry.producer[match['producer_idx']]
-            tag = producer.tags[match['tag_idx']]
 
-            # Replace the tag name
-            tag.replaceName(replace_text)
-
-            self.main_window.statusBar().showMessage(
-                f"Replaced tag in '{match['industry_name']}'", 3000
-            )
+            if replace_text.strip():
+                # Replace with new value
+                tag = producer.tags[match['tag_idx']]
+                tag.replaceName(replace_text)
+                self.main_window.statusBar().showMessage(
+                    f"Replaced tag in '{match['industry_name']}'", 3000
+                )
+            else:
+                # Delete the tag if replacing with empty string
+                tag_to_delete = producer.tags[match['tag_idx']]
+                producer.deleteTag(tag_to_delete.name)
+                self.main_window.statusBar().showMessage(
+                    f"Deleted tag in '{match['industry_name']}'", 3000
+                )
         else:
             # Handle regular column replacement
             original_index = match
@@ -312,18 +319,26 @@ class FindReplaceDialog(QDialog):
         if field_name == "Outbound tags in all industries":
             # Count unique industries for better message
             unique_industries = len(set(m['industry_idx'] for m in matches))
+            if replace_text.strip():
+                message = f"Replace all {len(matches)} tag occurrences of '{search_text}' with '{replace_text}' across {unique_industries} industries?"
+            else:
+                message = f"Delete all {len(matches)} tag occurrences of '{search_text}' across {unique_industries} industries?"
             reply = QMessageBox.question(
                 self,
                 "Replace All",
-                f"Replace all {len(matches)} tag occurrences of '{search_text}' with '{replace_text}' across {unique_industries} industries?",
+                message,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
         else:
+            if replace_text.strip():
+                message = f"Replace all {len(matches)} occurrences of '{search_text}' with '{replace_text}'?"
+            else:
+                message = f"Delete all {len(matches)} occurrences of '{search_text}'?"
             reply = QMessageBox.question(
                 self,
                 "Replace All",
-                f"Replace all {len(matches)} occurrences of '{search_text}' with '{replace_text}'?",
+                message,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
@@ -336,19 +351,29 @@ class FindReplaceDialog(QDialog):
         indFile1 = sys.modules['__main__'].indFile1
 
         if field_name == "Outbound tags in all industries":
-            # Replace all tag occurrences
+            # Replace or delete all tag occurrences
             affected_industries = set()
-            for match in matches:
-                industry = indFile1.industries[match['industry_idx']]
-                producer = industry.producer[match['producer_idx']]
-                tag = producer.tags[match['tag_idx']]
-                tag.replaceName(replace_text)
-                affected_industries.add(match['industry_idx'])
+            if replace_text.strip():
+                # Replace with new value
+                for match in matches:
+                    industry = indFile1.industries[match['industry_idx']]
+                    producer = industry.producer[match['producer_idx']]
+                    tag = producer.tags[match['tag_idx']]
+                    tag.replaceName(replace_text)
+                    affected_industries.add(match['industry_idx'])
+            else:
+                # Delete tags (use original search text)
+                for match in matches:
+                    industry = indFile1.industries[match['industry_idx']]
+                    producer = industry.producer[match['producer_idx']]
+                    producer.deleteTag(search_text)
+                    affected_industries.add(match['industry_idx'])
 
+            action = "Deleted" if not replace_text.strip() else "Replaced"
             QMessageBox.information(self, "Replace All",
-                f"Replaced {len(matches)} tag occurrences across {unique_industries} industries.")
+                f"{action} {len(matches)} tag occurrences across {unique_industries} industries.")
             self.main_window.statusBar().showMessage(
-                f"Replaced {len(matches)} tag occurrences", 5000
+                f"{action} {len(matches)} tag occurrences", 5000
             )
 
             # Mark all affected industries as dirty (convert to display rows after refresh)

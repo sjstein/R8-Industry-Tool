@@ -148,7 +148,7 @@ class IndustryDetailDialog(QDialog):
                 # Capacity
                 self.ui.producers_table.setItem(i, 4, QTableWidgetItem(str(prod.capacity)))
 
-                # Tags (displayed space-separated, can be entered with spaces or commas)
+                # Tags (displayed comma-separated, can be entered with spaces or commas)
                 tags_str = prod.returnTags() if prod.num_tags > 0 else ""
                 self.ui.producers_table.setItem(i, 5, QTableWidgetItem(tags_str))
         else:
