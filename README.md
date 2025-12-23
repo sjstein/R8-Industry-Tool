@@ -16,15 +16,15 @@ Please do **not** contact the developers at Run8 Studios for support with this t
 - Visual indicators for unsaved changes
 - Export configurations to new files
 
-## Requirements to build
+## Simple Download
+An executable is available in Releases in the middle right of this page. This is created with "pyinstaller"
+
+
+
+## Requirements to compile yourself
 
 - Python 3.8+
 - PySide6 6.10.1
-
-## An executable is available in Releases. 
-Note: This is created with "pyinstaller"
-
-## Installation
 
 1. Clone this repository
 2. Create a virtual environment:
