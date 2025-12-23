@@ -8,6 +8,7 @@ class DictTableModel(QAbstractTableModel):
         self._data = data or []
         self._headers = list(self._data[0].keys()) if self._data else []
         self._dirty_rows = set()  # Track rows with unsaved changes
+        self._original_indices = []  # Map display row to original data structure index
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._data)
@@ -47,11 +48,71 @@ class DictTableModel(QAbstractTableModel):
         self.endInsertRows()
 
     def update_data(self, new_data):
-        """Replace all data"""
+        """Replace all data (sorting will be handled by view)"""
         self.beginResetModel()
+
+        # Initialize with original order (no sorting here - view will handle it)
         self._data = new_data
+        self._original_indices = list(range(len(new_data)))
         self._headers = list(new_data[0].keys()) if new_data else []
+
+        # Remap dirty rows to new display positions
+        if self._dirty_rows:
+            # Create reverse mapping: original_index -> display_row
+            reverse_map = {orig_idx: display_row for display_row, orig_idx in enumerate(self._original_indices)}
+            # Update dirty rows to use display row indices
+            self._dirty_rows = {reverse_map[orig_idx] for orig_idx in self._dirty_rows if orig_idx in reverse_map}
+
         self.endResetModel()
+
+    def get_original_index(self, display_row):
+        """Get the original data structure index for a display row"""
+        if 0 <= display_row < len(self._original_indices):
+            return self._original_indices[display_row]
+        return display_row  # Fallback to display row if mapping doesn't exist
+
+    def sort(self, column, order):
+        """Sort the table by the specified column"""
+        if not self._data or column < 0 or column >= len(self._headers):
+            return
+
+        self.layoutAboutToBeChanged.emit()
+
+        # Get the column key
+        column_key = self._headers[column]
+
+        # Create list of (original_index, data) tuples
+        indexed_data = list(zip(self._original_indices, self._data))
+
+        # Define sort key function that handles different data types
+        def sort_key(item):
+            value = item[1].get(column_key, '')
+            # Convert to string and lowercase for consistent sorting
+            if isinstance(value, str):
+                return value.lower()
+            elif isinstance(value, (int, float)):
+                # For numbers, return them as-is (will sort numerically)
+                return value
+            else:
+                return str(value).lower()
+
+        # Sort the data
+        indexed_data.sort(key=sort_key, reverse=(order == Qt.SortOrder.DescendingOrder))
+
+        # Separate the sorted data and original indices
+        self._original_indices = [idx for idx, _ in indexed_data]
+        self._data = [data for _, data in indexed_data]
+
+        # Remap dirty rows to new display positions
+        if self._dirty_rows:
+            # Convert dirty rows from old display positions to original indices
+            old_dirty_original = {self._original_indices[row] for row in self._dirty_rows if row < len(self._original_indices)}
+            # Create reverse mapping: original_index -> new display_row
+            reverse_map = {orig_idx: display_row for display_row, orig_idx in enumerate(self._original_indices)}
+            # Update dirty rows to use new display row indices
+            self._dirty_rows = {reverse_map[orig_idx] for orig_idx in old_dirty_original if orig_idx in reverse_map}
+
+        self.layoutChanged.emit()
 
     def mark_row_dirty(self, row):
         """Mark a row as having unsaved changes"""
