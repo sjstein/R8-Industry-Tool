@@ -8,6 +8,8 @@ a = Analysis(
     binaries=[],
     datas=[
         ('r8CarTypes.csv', '.'),
+        ('app_icon.ico', '.'),
+        ('instructions.md', '.'),
         ('*.ui', '.'),  # Include UI files
     ],
     hiddenimports=[
