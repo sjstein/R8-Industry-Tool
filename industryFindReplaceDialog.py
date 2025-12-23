@@ -236,6 +236,6 @@ class IndustryFindReplaceDialog(QDialog):
         producer = self.industry.producer[producer_idx]
         tags_str = producer.returnTags() if producer.num_tags > 0 else ""
 
-        # Update the tags cell (column 5)
+        # Update the tags cell (column 2)
         from PySide6.QtWidgets import QTableWidgetItem
-        self.producers_table.setItem(producer_idx, 5, QTableWidgetItem(tags_str))
+        self.producers_table.setItem(producer_idx, 2, QTableWidgetItem(tags_str))

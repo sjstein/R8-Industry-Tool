@@ -176,7 +176,7 @@ class Ui_IndustryDetailDialog(object):
 
     def retranslateUi(self, IndustryDetailDialog):
         IndustryDetailDialog.setWindowTitle(QCoreApplication.translate("IndustryDetailDialog", u"Industry Details", None))
-        self.basicInfoGroup.setTitle(QCoreApplication.translate("IndustryDetailDialog", u"Basic Information", None))
+        self.basicInfoGroup.setTitle(QCoreApplication.translate("IndustryDetailDialog", u"Industry information", None))
         self.labelName.setText(QCoreApplication.translate("IndustryDetailDialog", u"Name:", None))
         self.labelLocalName.setText(QCoreApplication.translate("IndustryDetailDialog", u"Local Name:", None))
         self.labelSymbol.setText(QCoreApplication.translate("IndustryDetailDialog", u"Track Symbol:", None))
@@ -196,13 +196,13 @@ class Ui_IndustryDetailDialog(object):
         ___qtablewidgetitem4 = self.producers_table.horizontalHeaderItem(1)
         ___qtablewidgetitem4.setText(QCoreApplication.translate("IndustryDetailDialog", u"Car Type", None));
         ___qtablewidgetitem5 = self.producers_table.horizontalHeaderItem(2)
-        ___qtablewidgetitem5.setText(QCoreApplication.translate("IndustryDetailDialog", u"Produces", None));
+        ___qtablewidgetitem5.setText(QCoreApplication.translate("IndustryDetailDialog", u"Processed tags", None));
         ___qtablewidgetitem6 = self.producers_table.horizontalHeaderItem(3)
-        ___qtablewidgetitem6.setText(QCoreApplication.translate("IndustryDetailDialog", u"Hours", None));
+        ___qtablewidgetitem6.setText(QCoreApplication.translate("IndustryDetailDialog", u"Capacity", None));
         ___qtablewidgetitem7 = self.producers_table.horizontalHeaderItem(4)
-        ___qtablewidgetitem7.setText(QCoreApplication.translate("IndustryDetailDialog", u"Capacity", None));
+        ___qtablewidgetitem7.setText(QCoreApplication.translate("IndustryDetailDialog", u"Hours", None));
         ___qtablewidgetitem8 = self.producers_table.horizontalHeaderItem(5)
-        ___qtablewidgetitem8.setText(QCoreApplication.translate("IndustryDetailDialog", u"Outbound tags", None));
+        ___qtablewidgetitem8.setText(QCoreApplication.translate("IndustryDetailDialog", u"Produces", None));
         self.save_button.setText(QCoreApplication.translate("IndustryDetailDialog", u"Update", None))
         self.cancel_button.setText(QCoreApplication.translate("IndustryDetailDialog", u"Cancel", None))
     # retranslateUi

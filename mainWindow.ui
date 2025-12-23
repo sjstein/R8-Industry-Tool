@@ -51,6 +51,7 @@
     </property>
     <addaction name="actionInstructions"/>
     <addaction name="separator"/>
+    <addaction name="actionCheckUpdates"/>
     <addaction name="actionAbout"/>
    </widget>
    <addaction name="menuFile"/>
@@ -91,6 +92,11 @@
   <action name="actionAbout">
    <property name="text">
     <string>About...</string>
+   </property>
+  </action>
+  <action name="actionCheckUpdates">
+   <property name="text">
+    <string>Check for Updates...</string>
    </property>
   </action>
   <action name="actionQuit_3">

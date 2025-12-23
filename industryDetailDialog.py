@@ -49,20 +49,20 @@ class IndustryDetailDialog(QDialog):
         # Column 1: Car Type - resize to contents
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
 
-        # Column 2: Produce Empties - resize to contents
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        # Column 2: Processed tags - stretch to fill remaining space
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
-        # Column 3: Hours - resize to contents
+        # Column 3: Capacity - resize to contents
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
 
-        # Column 4: Capacity - resize to contents
+        # Column 4: Hours - resize to contents
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
 
-        # Column 5: Outbound tags - stretch to fill remaining space
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        # Column 5: Produces - resize to contents
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
 
         # Apply custom delegate to tags column to visually highlight text on edit
-        self.ui.producers_table.setItemDelegateForColumn(5, VisualSelectDelegate(self))
+        self.ui.producers_table.setItemDelegateForColumn(2, VisualSelectDelegate(self))
 
         # Make single-click immediately enter edit mode (so text gets highlighted)
         from PySide6.QtWidgets import QAbstractItemView
@@ -139,18 +139,18 @@ class IndustryDetailDialog(QDialog):
                 car_name_item.setFlags(car_name_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.ui.producers_table.setItem(i, 1, car_name_item)
 
-                # Produce Empties
-                self.ui.producers_table.setItem(i, 2, QTableWidgetItem("Empties" if prod.produce_empties else "Loads"))
-
-                # Hours
-                self.ui.producers_table.setItem(i, 3, QTableWidgetItem(str(prod.proc_hours)))
-
-                # Capacity
-                self.ui.producers_table.setItem(i, 4, QTableWidgetItem(str(prod.capacity)))
-
                 # Tags (displayed comma-separated, can be entered with spaces or commas)
                 tags_str = prod.returnTags() if prod.num_tags > 0 else ""
-                self.ui.producers_table.setItem(i, 5, QTableWidgetItem(tags_str))
+                self.ui.producers_table.setItem(i, 2, QTableWidgetItem(tags_str))
+
+                # Capacity
+                self.ui.producers_table.setItem(i, 3, QTableWidgetItem(str(prod.capacity)))
+
+                # Hours
+                self.ui.producers_table.setItem(i, 4, QTableWidgetItem(str(prod.proc_hours)))
+
+                # Produce Empties
+                self.ui.producers_table.setItem(i, 5, QTableWidgetItem("Empties" if prod.produce_empties else "Loads"))
         else:
             self.ui.producers_table.setRowCount(0)
 
@@ -223,21 +223,21 @@ class IndustryDetailDialog(QDialog):
             bIndex = int(self.ui.producers_table.item(i, 0).text())
             prod.bIndex = bIndex
 
-            # produce_empties - column 2
-            produce_empties_text = self.ui.producers_table.item(i, 2).text().strip().lower()
-            prod.produce_empties = produce_empties_text in ['yes', 'y', '1', 'true']
-
-            # proc_hours - column 3
-            prod.proc_hours = int(self.ui.producers_table.item(i, 3).text())
-
-            # capacity - column 4
-            prod.capacity = int(self.ui.producers_table.item(i, 4).text())
-
-            # Parse tags (space or comma separated) - column 5
-            tags_text = self.ui.producers_table.item(i, 5).text().strip()
+            # Parse tags (space or comma separated) - column 2
+            tags_text = self.ui.producers_table.item(i, 2).text().strip()
             # Replace commas with spaces, then split by whitespace
             tags_text = tags_text.replace(',', ' ')
             tag_list = [tag for tag in tags_text.split() if tag]
+
+            # capacity - column 3
+            prod.capacity = int(self.ui.producers_table.item(i, 3).text())
+
+            # proc_hours - column 4
+            prod.proc_hours = int(self.ui.producers_table.item(i, 4).text())
+
+            # produce_empties - column 5
+            produce_empties_text = self.ui.producers_table.item(i, 5).text().strip().lower()
+            prod.produce_empties = produce_empties_text in ['yes', 'y', '1', 'true']
 
             # Rebuild tags list
             prod.tags = []
