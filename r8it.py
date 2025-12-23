@@ -228,9 +228,9 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage(f'Updated: {industry.name}', 3000)
 
     def show_instructions(self):
-        """Show the instructions dialog"""
+        """Show the instructions dialog (non-modal)"""
         dialog = InstructionsDialog(self)
-        dialog.exec()
+        dialog.show()  # Use show() instead of exec() to allow interaction with main window
 
     def show_about(self):
         """Show the about dialog"""
