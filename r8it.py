@@ -1,11 +1,15 @@
 import csv
 import sys
 import os
+import json
+import urllib.request
+import threading
+from packaging import version as pkg_version
 
 from r8lib import IndustryFile, Industry
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QPushButton, QHBoxLayout, QWidget
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QFileSystemWatcher, QTimer
 from mainWindow_ui import Ui_MainWindow
 from mainTable import DictTableModel
 from industryDetailDialog import IndustryDetailDialog
@@ -24,6 +28,41 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
+
+def check_for_updates(timeout=5):
+    """
+    Check GitHub for newer releases.
+    Returns: (has_update, latest_version, release_url, error_message)
+    """
+    try:
+        # GitHub API endpoint for latest release
+        api_url = "https://api.github.com/repos/sjstein/R8-Industry-Tool/releases/latest"
+
+        # Create request with timeout
+        req = urllib.request.Request(api_url)
+        req.add_header('Accept', 'application/vnd.github.v3+json')
+
+        # Make request with timeout
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            data = json.loads(response.read().decode())
+
+        # Extract version from tag_name (handles both "v1.2.3" and "1.2.3")
+        latest_tag = data.get('tag_name', '')
+        latest_version = latest_tag.lstrip('v')
+        release_url = data.get('html_url', 'https://github.com/sjstein/R8-Industry-Tool/releases')
+
+        # Compare versions using packaging library for semantic versioning
+        current = pkg_version.parse(VERSION)
+        latest = pkg_version.parse(latest_version)
+
+        has_update = latest > current
+
+        return (has_update, latest_version, release_url, None)
+
+    except Exception as e:
+        # Return error information
+        return (False, None, None, str(e))
 
 
 carfile = resource_path('r8CarTypes.csv')
@@ -73,12 +112,20 @@ class MainWindow(QMainWindow):
         if hasattr(self.ui, 'actionQuit_3'):
             self.ui.actionQuit_3.triggered.connect(self.close)  # Quit
         self.ui.actionInstructions.triggered.connect(self.show_instructions)
+        self.ui.actionCheckUpdates.triggered.connect(self.check_updates_manual)
         self.ui.actionAbout.triggered.connect(self.show_about)
 
         # Disable Save and Save As until a file is loaded
         self.ui.actionSave.setEnabled(False)
         if hasattr(self.ui, 'actionQuit_2'):
             self.ui.actionQuit_2.setEnabled(False)
+
+        # File watcher for detecting external changes
+        self.file_watcher = QFileSystemWatcher()
+        self.file_watcher.fileChanged.connect(self.on_file_changed)
+
+        # Check for updates on startup (non-blocking)
+        QTimer.singleShot(500, self.check_updates_on_startup)
 
     def open_file(self):
         file_name , _ = QFileDialog.getOpenFileName(self, 'Open File', '', 'Industry Files (*.ind);;All Files (*)')
@@ -97,8 +144,15 @@ class MainWindow(QMainWindow):
                     indFile1.industries.append(Industry(fcontent, mem_ptr))
                     mem_ptr += len(indFile1.industries[i])
 
+            # Remove old file from watcher if there was one
+            if self.current_filename and self.current_filename in self.file_watcher.files():
+                self.file_watcher.removePath(self.current_filename)
+
             # Track the loaded filename
             self.current_filename = file_name
+
+            # Add the new file to the watcher
+            self.file_watcher.addPath(file_name)
             self.statusBar().showMessage('Loaded file: ' + file_name +
                                          f'      [{indFile1.num_rec} industries loaded]')
 
@@ -257,6 +311,79 @@ class MainWindow(QMainWindow):
         dialog = FindReplaceDialog(self)
         dialog.show()  # Use show() instead of exec() to allow non-modal operation
 
+    def check_updates_on_startup(self):
+        """Check for updates on startup in background thread"""
+        def check_thread():
+            has_update, latest_version, release_url, error = check_for_updates()
+            # Use QTimer to safely update UI from thread
+            if has_update:
+                QTimer.singleShot(0, lambda: self.show_update_dialog(latest_version, release_url, auto_check=True))
+
+        # Run check in background thread to not block UI
+        thread = threading.Thread(target=check_thread, daemon=True)
+        thread.start()
+
+    def check_updates_manual(self):
+        """Check for updates when user clicks menu item"""
+        # Show status message
+        self.statusBar().showMessage('Checking for updates...', 3000)
+
+        def check_thread():
+            has_update, latest_version, release_url, error = check_for_updates()
+            # Use QTimer to safely update UI from thread
+            QTimer.singleShot(0, lambda: self.handle_manual_update_result(has_update, latest_version, release_url, error))
+
+        # Run check in background thread
+        thread = threading.Thread(target=check_thread, daemon=True)
+        thread.start()
+
+    def handle_manual_update_result(self, has_update, latest_version, release_url, error):
+        """Handle the result of manual update check (called on main thread)"""
+        if error:
+            QMessageBox.warning(
+                self,
+                'Update Check Failed',
+                f'Could not check for updates:\n{error}\n\nPlease check your internet connection.'
+            )
+        elif has_update:
+            self.show_update_dialog(latest_version, release_url, auto_check=False)
+        else:
+            QMessageBox.information(
+                self,
+                'No Updates Available',
+                f'You are running the latest version ({VERSION}).'
+            )
+
+    def show_update_dialog(self, latest_version, release_url, auto_check=True):
+        """Show dialog notifying user of available update"""
+        if auto_check:
+            message = (
+                f'A new version of Run8 Industry Tool is available!\n\n'
+                f'Current version: {VERSION}\n'
+                f'Latest version: {latest_version}\n\n'
+                f'Would you like to download the update?'
+            )
+        else:
+            message = (
+                f'Update available!\n\n'
+                f'Current version: {VERSION}\n'
+                f'Latest version: {latest_version}\n\n'
+                f'Would you like to download the update?'
+            )
+
+        reply = QMessageBox.question(
+            self,
+            'Update Available',
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Open the releases page in the default browser
+            import webbrowser
+            webbrowser.open(release_url)
+
     def closeEvent(self, event):
         """Handle window close event - check for unsaved changes"""
         # Check if there are unsaved changes
@@ -274,6 +401,58 @@ class MainWindow(QMainWindow):
                 return
 
         event.accept()  # Proceed with close
+
+    def on_file_changed(self, path):
+        """Handle external file changes"""
+        # Check if user has unsaved changes
+        if self.table_model._dirty_rows:
+            reply = QMessageBox.warning(
+                self,
+                'File Changed Externally',
+                f'The file has been modified by another program:\n{path}\n\n'
+                f'You have {len(self.table_model._dirty_rows)} unsaved changes that will be lost if you reload.\n\n'
+                'Do you want to reload the file?',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+        else:
+            reply = QMessageBox.question(
+                self,
+                'File Changed Externally',
+                f'The file has been modified by another program:\n{path}\n\n'
+                'Do you want to reload the file?',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Reload the file
+            try:
+                with open(path, 'rb') as ifp:
+                    mem_ptr = 0
+                    fcontent = ifp.read()
+                    indFile1.unk1 = fcontent[mem_ptr:mem_ptr + INTLEN]
+                    mem_ptr += INTLEN
+                    indFile1.num_rec = int.from_bytes(fcontent[mem_ptr:mem_ptr + INTLEN], 'little')
+                    mem_ptr += INTLEN
+                    # Clear existing industries before loading new ones
+                    indFile1.industries = []
+                    for i in range(0, indFile1.num_rec):
+                        indFile1.industries.append(Industry(fcontent, mem_ptr))
+                        mem_ptr += len(indFile1.industries[i])
+
+                # Populate the table with reloaded industry data
+                industry_data = [ind.to_dict() for ind in indFile1.industries]
+                self.table_model.update_data(industry_data)
+
+                self.statusBar().showMessage(f'Reloaded file: {path}      [{indFile1.num_rec} industries loaded]', 5000)
+
+            except Exception as e:
+                QMessageBox.critical(self, "Reload Failed", f"Failed to reload file:\n{str(e)}")
+
+        # Re-add the file to the watcher (QFileSystemWatcher stops watching after a change)
+        if path not in self.file_watcher.files():
+            self.file_watcher.addPath(path)
 
 
 if __name__ == "__main__":
