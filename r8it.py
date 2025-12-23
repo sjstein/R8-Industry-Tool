@@ -12,6 +12,7 @@ from industryDetailDialog import IndustryDetailDialog
 from instructionsDialog import InstructionsDialog
 from aboutDialog import AboutDialog
 from findReplaceDialog import FindReplaceDialog
+from version import VERSION
 
 
 def resource_path(relative_path):
@@ -37,6 +38,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # Set window title with version
+        self.setWindowTitle(f"Run8 Industry Tool - v{VERSION}")
 
         # Track the currently loaded file
         self.current_filename = None

@@ -32,6 +32,11 @@ class DictTableModel(QAbstractTableModel):
             if index.row() in self._dirty_rows:
                 return QBrush(QColor(255, 255, 200))  # Light yellow
 
+        elif role == Qt.ItemDataRole.ForegroundRole:
+            # Use black text for dirty rows to ensure readability in dark mode
+            if index.row() in self._dirty_rows:
+                return QBrush(QColor(0, 0, 0))  # Black text
+
         return None
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):  # Changed here
