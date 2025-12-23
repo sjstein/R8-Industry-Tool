@@ -136,10 +136,17 @@ class IndustryFindReplaceDialog(QDialog):
         replace_text = self.replace_edit.text()
         match = self.matches[self.current_match_index]
 
-        # Replace the tag
+        # Replace or delete the tag
         producer = self.industry.producer[match['producer_idx']]
-        tag = producer.tags[match['tag_idx']]
-        tag.replaceName(replace_text)
+
+        if replace_text.strip():
+            # Replace with new value
+            tag = producer.tags[match['tag_idx']]
+            tag.replaceName(replace_text)
+        else:
+            # Delete the tag if replacing with empty string
+            tag_to_delete = producer.tags[match['tag_idx']]
+            producer.deleteTag(tag_to_delete.name)
 
         # Refresh the producers table display
         self.refresh_producer_row(match['producer_idx'])
@@ -177,10 +184,14 @@ class IndustryFindReplaceDialog(QDialog):
             return
 
         # Confirm replace all
+        if replace_text.strip():
+            message = f"Replace all {len(matches)} occurrences of tag '{search_text}' with '{replace_text}' in this industry?"
+        else:
+            message = f"Delete all {len(matches)} occurrences of tag '{search_text}' in this industry?"
         reply = QMessageBox.question(
             self,
             "Replace All",
-            f"Replace all {len(matches)} occurrences of tag '{search_text}' with '{replace_text}' in this industry?",
+            message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -191,12 +202,20 @@ class IndustryFindReplaceDialog(QDialog):
         # Track which producer rows need refreshing
         affected_producers = set()
 
-        # Perform replacements
-        for match in matches:
-            producer = self.industry.producer[match['producer_idx']]
-            tag = producer.tags[match['tag_idx']]
-            tag.replaceName(replace_text)
-            affected_producers.add(match['producer_idx'])
+        # Perform replacements or deletions
+        if replace_text.strip():
+            # Replace with new value
+            for match in matches:
+                producer = self.industry.producer[match['producer_idx']]
+                tag = producer.tags[match['tag_idx']]
+                tag.replaceName(replace_text)
+                affected_producers.add(match['producer_idx'])
+        else:
+            # Delete tags (use original search text since all matches have this name)
+            for match in matches:
+                producer = self.industry.producer[match['producer_idx']]
+                producer.deleteTag(search_text)
+                affected_producers.add(match['producer_idx'])
 
         # Refresh affected producer rows
         for producer_idx in affected_producers:
@@ -209,7 +228,8 @@ class IndustryFindReplaceDialog(QDialog):
         # Reset search
         self.reset_search()
 
-        QMessageBox.information(self, "Replace All", f"Replaced {len(matches)} tag occurrences.")
+        action = "Deleted" if not replace_text.strip() else "Replaced"
+        QMessageBox.information(self, "Replace All", f"{action} {len(matches)} tag occurrences.")
 
     def refresh_producer_row(self, producer_idx):
         """Refresh the tags display for a specific producer row"""
