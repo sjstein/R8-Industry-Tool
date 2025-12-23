@@ -5,6 +5,7 @@ import os
 from r8lib import IndustryFile, Industry
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QPushButton, QHBoxLayout, QWidget
+from PySide6.QtCore import Qt
 from mainWindow_ui import Ui_MainWindow
 from mainTable import DictTableModel
 from industryDetailDialog import IndustryDetailDialog
@@ -130,6 +131,11 @@ class MainWindow(QMainWindow):
 
             # Column 5: Process in Blocks
             header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+
+            # Enable column sorting by clicking headers
+            self.ui.tableView.setSortingEnabled(True)
+            # Sort by industry name (column 0) ascending by default
+            self.ui.tableView.sortByColumn(0, Qt.SortOrder.AscendingOrder)
 
     def save_file(self):
         """Save the industry configuration to the currently loaded file"""
