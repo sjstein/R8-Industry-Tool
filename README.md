@@ -70,6 +70,6 @@ See [instructions.md](instructions.md) for detailed usage instructions.
 - `r8CarTypes.csv` - Car type reference data
 
 ## License
+ GPL V3 (See https://github.com/sjstein/R8-Industry-Tool/blob/master/LICENSE)
 
-[Add your license here]
 
