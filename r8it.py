@@ -10,7 +10,7 @@ from r8lib import IndustryFile, Industry
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QPushButton, QHBoxLayout, QWidget
 from PySide6.QtGui import QIcon
-from PySide6.QtCore import Qt, QFileSystemWatcher, QTimer
+from PySide6.QtCore import Qt, QTimer
 from mainWindow_ui import Ui_MainWindow
 from mainTable import DictTableModel
 from industryDetailDialog import IndustryDetailDialog
@@ -126,14 +126,24 @@ class MainWindow(QMainWindow):
         if hasattr(self.ui, 'actionQuit_2'):
             self.ui.actionQuit_2.setEnabled(False)
 
-        # File watcher for detecting external changes
-        self.file_watcher = QFileSystemWatcher()
-        self.file_watcher.fileChanged.connect(self.on_file_changed)
-
         # Check for updates on startup (non-blocking)
         QTimer.singleShot(500, self.check_updates_on_startup)
 
     def open_file(self):
+        # Check for unsaved changes before opening a new file
+        if self.table_model._dirty_rows:
+            reply = QMessageBox.question(
+                self,
+                'Unsaved Changes',
+                f'You have {len(self.table_model._dirty_rows)} unsaved changes.\n\n'
+                'Opening a new file will discard these changes. Continue?',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.No:
+                return  # User cancelled, don't open new file
+
         file_name , _ = QFileDialog.getOpenFileName(self, 'Open File', '', 'Industry Files (*.ind);;All Files (*)')
         if file_name:
             print(f'Selected file: {file_name}')
@@ -150,21 +160,17 @@ class MainWindow(QMainWindow):
                     indFile1.industries.append(Industry(fcontent, mem_ptr))
                     mem_ptr += len(indFile1.industries[i])
 
-            # Remove old file from watcher if there was one
-            if self.current_filename and self.current_filename in self.file_watcher.files():
-                self.file_watcher.removePath(self.current_filename)
-
             # Track the loaded filename
             self.current_filename = file_name
-
-            # Add the new file to the watcher
-            self.file_watcher.addPath(file_name)
             self.statusBar().showMessage('Loaded file: ' + file_name +
                                          f'      [{indFile1.num_rec} industries loaded]')
 
             # Populate the table with industry data
             industry_data = [ind.to_dict() for ind in indFile1.industries]
             self.table_model.update_data(industry_data)
+
+            # Clear dirty rows since this is a fresh file load
+            self.table_model.clear_dirty_flags()
 
             # Enable Save and Save As menu items now that data is loaded
             self.ui.actionSave.setEnabled(True)
@@ -407,58 +413,6 @@ class MainWindow(QMainWindow):
                 return
 
         event.accept()  # Proceed with close
-
-    def on_file_changed(self, path):
-        """Handle external file changes"""
-        # Check if user has unsaved changes
-        if self.table_model._dirty_rows:
-            reply = QMessageBox.warning(
-                self,
-                'File Changed Externally',
-                f'The file has been modified by another program:\n{path}\n\n'
-                f'You have {len(self.table_model._dirty_rows)} unsaved changes that will be lost if you reload.\n\n'
-                'Do you want to reload the file?',
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
-        else:
-            reply = QMessageBox.question(
-                self,
-                'File Changed Externally',
-                f'The file has been modified by another program:\n{path}\n\n'
-                'Do you want to reload the file?',
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes
-            )
-
-        if reply == QMessageBox.StandardButton.Yes:
-            # Reload the file
-            try:
-                with open(path, 'rb') as ifp:
-                    mem_ptr = 0
-                    fcontent = ifp.read()
-                    indFile1.unk1 = fcontent[mem_ptr:mem_ptr + INTLEN]
-                    mem_ptr += INTLEN
-                    indFile1.num_rec = int.from_bytes(fcontent[mem_ptr:mem_ptr + INTLEN], 'little')
-                    mem_ptr += INTLEN
-                    # Clear existing industries before loading new ones
-                    indFile1.industries = []
-                    for i in range(0, indFile1.num_rec):
-                        indFile1.industries.append(Industry(fcontent, mem_ptr))
-                        mem_ptr += len(indFile1.industries[i])
-
-                # Populate the table with reloaded industry data
-                industry_data = [ind.to_dict() for ind in indFile1.industries]
-                self.table_model.update_data(industry_data)
-
-                self.statusBar().showMessage(f'Reloaded file: {path}      [{indFile1.num_rec} industries loaded]', 5000)
-
-            except Exception as e:
-                QMessageBox.critical(self, "Reload Failed", f"Failed to reload file:\n{str(e)}")
-
-        # Re-add the file to the watcher (QFileSystemWatcher stops watching after a change)
-        if path not in self.file_watcher.files():
-            self.file_watcher.addPath(path)
 
 
 if __name__ == "__main__":
