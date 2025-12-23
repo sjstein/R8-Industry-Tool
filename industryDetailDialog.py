@@ -89,6 +89,12 @@ class IndustryDetailDialog(QDialog):
         self.ui.save_button.clicked.connect(self.accept)
         self.ui.cancel_button.clicked.connect(self.reject)
 
+        # Set Update button as the default (activated by Enter key)
+        self.ui.save_button.setDefault(True)
+        self.ui.save_button.setAutoDefault(True)
+        self.ui.remove_track_button.setAutoDefault(False)
+        self.ui.cancel_button.setAutoDefault(False)
+
         # Load data
         self.load_data()
 
