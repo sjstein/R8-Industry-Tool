@@ -32,7 +32,7 @@
        <item>
         <widget class="QGroupBox" name="basicInfoGroup">
          <property name="title">
-          <string>Basic Information</string>
+          <string>Industry information</string>
          </property>
          <layout class="QFormLayout" name="formLayout">
           <item row="0" column="0">
@@ -160,12 +160,7 @@
             </column>
             <column>
              <property name="text">
-              <string>Produces</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Hours</string>
+              <string>Processed tags</string>
              </property>
             </column>
             <column>
@@ -175,7 +170,12 @@
             </column>
             <column>
              <property name="text">
-              <string>Outbound tags</string>
+              <string>Hours</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Produces</string>
              </property>
             </column>
            </widget>
