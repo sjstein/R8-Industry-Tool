@@ -160,7 +160,7 @@
             </column>
             <column>
              <property name="text">
-              <string>Processed tags</string>
+              <string>Processed Tags</string>
              </property>
             </column>
             <column>

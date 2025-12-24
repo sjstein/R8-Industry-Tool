@@ -8,7 +8,7 @@ from packaging import version as pkg_version
 
 from r8lib import IndustryFile, Industry
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QPushButton, QHBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QPushButton, QHBoxLayout, QWidget, QLabel, QSizePolicy
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt, QTimer, Signal, QObject
 from mainWindow_ui import Ui_MainWindow
@@ -143,6 +143,14 @@ class MainWindow(QMainWindow):
         self.ui.actionCheckUpdates.triggered.connect(self.check_updates_manual)
         self.ui.actionAbout.triggered.connect(self.show_about)
 
+        # Create file info label for menu bar corner
+        self.file_info_label = QLabel("No file loaded")
+        self.file_info_label.setStyleSheet("QLabel { padding: 0 10px; }")  # Add some padding
+        self.file_info_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        self.file_info_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.file_info_label.setMinimumWidth(300)  # Ensure enough space for filename and industry count
+        self.menuBar().setCornerWidget(self.file_info_label, Qt.Corner.TopRightCorner)
+
         # Disable Save and Save As until a file is loaded
         self.ui.actionSave.setEnabled(False)
         if hasattr(self.ui, 'actionQuit_2'):
@@ -184,8 +192,15 @@ class MainWindow(QMainWindow):
 
             # Track the loaded filename
             self.current_filename = file_name
-            self.statusBar().showMessage('Loaded file: ' + file_name +
-                                         f'      [{indFile1.num_rec} industries loaded]')
+
+            # Update file info label in menu bar corner (show filename only)
+            filename = os.path.basename(file_name)
+            self.file_info_label.setText(f'{filename}  [{indFile1.num_rec} industries]')
+            self.file_info_label.setToolTip(f'Full path: {file_name}')  # Show full path on hover
+            self.file_info_label.adjustSize()  # Resize label to fit content
+
+            # Show temporary message
+            self.statusBar().showMessage(f'Loaded {indFile1.num_rec} industries from {filename}', 3000)
 
             # Populate the table with industry data
             industry_data = [ind.to_dict() for ind in indFile1.industries]
@@ -263,7 +278,8 @@ class MainWindow(QMainWindow):
             # Clear dirty flags since all changes are now saved
             self.table_model.clear_dirty_flags()
 
-            self.statusBar().showMessage(f'Saved file: {self.current_filename}', 5000)
+            # Show temporary message
+            self.statusBar().showMessage(f'Saved {os.path.basename(self.current_filename)}', 3000)
             QMessageBox.information(self, "Save Successful", f"Industry configuration saved to:\n{self.current_filename}")
 
         except Exception as e:
@@ -299,7 +315,15 @@ class MainWindow(QMainWindow):
 
             # Update current filename to the new file
             self.current_filename = file_name
-            self.statusBar().showMessage(f'Saved file: {file_name}', 5000)
+
+            # Update file info label in menu bar corner (show filename only)
+            filename = os.path.basename(file_name)
+            self.file_info_label.setText(f'{filename}  [{indFile1.num_rec} industries]')
+            self.file_info_label.setToolTip(f'Full path: {file_name}')  # Show full path on hover
+            self.file_info_label.adjustSize()  # Resize label to fit content
+
+            # Show temporary message
+            self.statusBar().showMessage(f'Saved file as: {filename}', 3000)
             QMessageBox.information(self, "Save Successful", f"Industry configuration saved to:\n{file_name}")
 
         except Exception as e:

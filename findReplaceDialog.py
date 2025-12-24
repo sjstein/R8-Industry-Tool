@@ -25,7 +25,7 @@ class FindReplaceDialog(QDialog):
 
         # Field selector
         self.field_combo = QComboBox()
-        self.field_combo.addItems(["Tag", "Local Name", "Outbound tags in all industries"])
+        self.field_combo.addItems(["Tag", "Local Name", "Processed tags in all industries"])
         criteria_layout.addRow("Search in:", self.field_combo)
 
         # Find what
@@ -87,7 +87,7 @@ class FindReplaceDialog(QDialog):
     def update_button_states(self):
         """Update button enabled states based on selected field"""
         field_name = self.field_combo.currentText()
-        is_tag_search = field_name == "Outbound tags in all industries"
+        is_tag_search = field_name == "Processed tags in all industries"
 
         # For tag search, only allow Replace All
         self.find_button.setEnabled(not is_tag_search)
@@ -118,7 +118,7 @@ class FindReplaceDialog(QDialog):
         field_name = self.field_combo.currentText()
 
         # Handle outbound tags search
-        if field_name == "Outbound tags in all industries":
+        if field_name == "Processed tags in all industries":
             return self.find_tag_matches(search_text)
 
         # Handle regular column search
@@ -182,7 +182,7 @@ class FindReplaceDialog(QDialog):
         field_name = self.field_combo.currentText()
 
         # Handle tag matches - open industry detail dialog
-        if field_name == "Outbound tags in all industries":
+        if field_name == "Processed tags in all industries":
             import sys
             indFile1 = sys.modules['__main__'].indFile1
             cardict = sys.modules['__main__'].cardict
@@ -241,7 +241,7 @@ class FindReplaceDialog(QDialog):
         indFile1 = sys.modules['__main__'].indFile1
 
         # Handle tag replacement
-        if field_name == "Outbound tags in all industries":
+        if field_name == "Processed tags in all industries":
             industry = indFile1.industries[match['industry_idx']]
             producer = industry.producer[match['producer_idx']]
 
@@ -276,7 +276,7 @@ class FindReplaceDialog(QDialog):
         self.main_window.table_model.update_data(industry_data)
 
         # Mark the row as dirty (unsaved changes)
-        if field_name == "Outbound tags in all industries":
+        if field_name == "Processed tags in all industries":
             # Convert original index to display row
             display_row = self.main_window.table_model._original_indices.index(match['industry_idx'])
             self.main_window.table_model.mark_row_dirty(display_row)
@@ -316,7 +316,7 @@ class FindReplaceDialog(QDialog):
         field_name = self.field_combo.currentText()
 
         # Confirm replace all
-        if field_name == "Outbound tags in all industries":
+        if field_name == "Processed tags in all industries":
             # Count unique industries for better message
             unique_industries = len(set(m['industry_idx'] for m in matches))
             if replace_text.strip():
@@ -350,7 +350,7 @@ class FindReplaceDialog(QDialog):
         import sys
         indFile1 = sys.modules['__main__'].indFile1
 
-        if field_name == "Outbound tags in all industries":
+        if field_name == "Processed tags in all industries":
             # Replace or delete all tag occurrences
             affected_industries = set()
             if replace_text.strip():
