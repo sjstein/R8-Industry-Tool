@@ -24,6 +24,7 @@ class AboutDialog(QDialog):
 
         # Main layout
         main_layout = QHBoxLayout(self)
+        main_layout.setSpacing(12)  # spacing between icon and text
 
         # Left side - Icon
         icon_label = QLabel()
@@ -38,6 +39,7 @@ class AboutDialog(QDialog):
             icon_label.setText("🔧")
             icon_label.setStyleSheet("font-size: 48px;")
         icon_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+        icon_label.setFixedWidth(64)  # Prevent icon from expanding horizontally
         main_layout.addWidget(icon_label)
 
         # Right side - Information
@@ -64,14 +66,19 @@ class AboutDialog(QDialog):
         info_layout.addWidget(build_date_label)
 
         # Spacer
-        info_layout.addSpacing(20)
+        info_layout.addSpacing(10)
 
         # Author info
         author_label = QLabel("""
             <b>Author:</b> Josh Stein<br>
             <b>Contact:</b> Sinistar on the Depot forums<br>
+            <br>
+            <b>Found a bug? Request a feature?</b><br>
+            Please add an issue to the repository: 
+            <a href="https://github.com/sjstein/R8-Industry-Tool/issues">GitHub Issues</a>
         """)
         author_label.setTextFormat(Qt.TextFormat.RichText)
+        author_label.setOpenExternalLinks(True)  # Enable clicking links to open in browser
         info_layout.addWidget(author_label)
 
         # Add stretch to push everything to the top
