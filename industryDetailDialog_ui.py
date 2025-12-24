@@ -196,7 +196,7 @@ class Ui_IndustryDetailDialog(object):
         ___qtablewidgetitem4 = self.producers_table.horizontalHeaderItem(1)
         ___qtablewidgetitem4.setText(QCoreApplication.translate("IndustryDetailDialog", u"Car Type", None));
         ___qtablewidgetitem5 = self.producers_table.horizontalHeaderItem(2)
-        ___qtablewidgetitem5.setText(QCoreApplication.translate("IndustryDetailDialog", u"Processed tags", None));
+        ___qtablewidgetitem5.setText(QCoreApplication.translate("IndustryDetailDialog", u"Processed Tags", None));
         ___qtablewidgetitem6 = self.producers_table.horizontalHeaderItem(3)
         ___qtablewidgetitem6.setText(QCoreApplication.translate("IndustryDetailDialog", u"Capacity", None));
         ___qtablewidgetitem7 = self.producers_table.horizontalHeaderItem(4)
