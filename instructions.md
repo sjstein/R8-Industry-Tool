@@ -5,6 +5,7 @@ This tool allows you to view and edit Run8 Train Simulator industry configuratio
 
 ## Getting Started
 
+### **Important**: Always back up your original files before making changes! ###
 ### Opening a File
 1. Go to **File → Open** (or press Ctrl+O)
 2. Navigate to the specific Run8 Regions directory (ex: \Content\V3Routes\Regions\SouthernCA)
@@ -22,7 +23,7 @@ The main window displays a table with the following columns:
 - **Incoming cars**: Number of producer configurations
 - **Process in Blocks**: Whether the industry processes cars in blocks
 #### Find/replace:
-In the lower right corner of the main window there is a `find` button. This will bring up a dialog allowing you to search / replace strings in the industry symbol, local name, and outbound tag fields.
+In the lower right corner of the main window there is a `find` button. This will bring up a dialog allowing you to search / replace strings in the industry symbol, local name, and processed tag fields.
 
 ### Editing an Industry
 1. **Double-click** any row in the table to open the detail dialog
@@ -40,10 +41,10 @@ In the lower right corner of the main window there is a `find` button. This will
 - View car type information (read-only)
 - Edit whether the producer creates Empties or Loads
 - Adjust processing hours and capacity
-- Modify outbound tags (enter using spaces or commas as separators)
+- Modify processed tags (enter using spaces or commas as separators)
 
 #### Find/replace:
-In the lower right corner of the industry window there is a `find` button. This will bring up a dialog allowing you to search / replace strings outbound tag fields of the particular industry.
+In the lower right corner of the industry window there is a `find` button. This will bring up a dialog allowing you to search / replace strings in the processed tag fields of the particular industry.
 
 ## Saving Changes
 
@@ -52,6 +53,5 @@ In the lower right corner of the industry window there is a `find` button. This 
 - Use **File → Save As...** to create a new file.
 - *Note*: If overwriting the original file, you'll be prompted to confirm
 
-**Important**: Always back up your original files before making changes!
 
 

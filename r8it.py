@@ -112,6 +112,9 @@ class MainWindow(QMainWindow):
         # Track the currently loaded file
         self.current_filename = None
 
+        # Track any open industry detail dialog
+        self.open_detail_dialog = None
+
         # Initialize the table model
         self.table_model = DictTableModel()
         self.ui.tableView.setModel(self.table_model)
@@ -142,6 +145,11 @@ class MainWindow(QMainWindow):
         self.ui.actionInstructions.triggered.connect(self.show_instructions)
         self.ui.actionCheckUpdates.triggered.connect(self.check_updates_manual)
         self.ui.actionAbout.triggered.connect(self.show_about)
+
+        # Add Ctrl+F shortcut for Find
+        from PySide6.QtGui import QShortcut, QKeySequence
+        find_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
+        find_shortcut.activated.connect(self.show_find_replace)
 
         # Create file info label for menu bar corner
         self.file_info_label = QLabel("No file loaded")
@@ -343,7 +351,14 @@ class MainWindow(QMainWindow):
 
             # Open the detail dialog, passing the original index
             dialog = IndustryDetailDialog(industry, cardict, self, industry_row=original_index)
+
+            # Store reference to open dialog
+            self.open_detail_dialog = dialog
+
             result = dialog.exec()
+
+            # Clear reference when dialog closes
+            self.open_detail_dialog = None
 
             # If user clicked Save, refresh the table and mark as dirty
             if result == IndustryDetailDialog.DialogCode.Accepted:

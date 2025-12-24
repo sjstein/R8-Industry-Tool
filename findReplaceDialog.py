@@ -117,7 +117,7 @@ class FindReplaceDialog(QDialog):
 
         field_name = self.field_combo.currentText()
 
-        # Handle outbound tags search
+        # Handle processed tags search
         if field_name == "Processed tags in all industries":
             return self.find_tag_matches(search_text)
 
@@ -271,9 +271,13 @@ class FindReplaceDialog(QDialog):
 
             self.main_window.statusBar().showMessage("Replaced 1 occurrence", 3000)
 
-        # Refresh the table
+        # Refresh the main table to show the replacement
         industry_data = [ind.to_dict() for ind in indFile1.industries]
         self.main_window.table_model.update_data(industry_data)
+
+        # Refresh the Industry Detail Dialog if it's open
+        if self.main_window.open_detail_dialog is not None:
+            self.main_window.open_detail_dialog.refresh()
 
         # Mark the row as dirty (unsaved changes)
         if field_name == "Processed tags in all industries":
@@ -370,16 +374,25 @@ class FindReplaceDialog(QDialog):
                     affected_industries.add(match['industry_idx'])
 
             action = "Deleted" if not replace_text.strip() else "Replaced"
+
+            # Refresh the table FIRST
+            industry_data = [ind.to_dict() for ind in indFile1.industries]
+            self.main_window.table_model.update_data(industry_data)
+
+            # Refresh the Industry Detail Dialog if it's open
+            if self.main_window.open_detail_dialog is not None:
+                self.main_window.open_detail_dialog.refresh()
+
+            # Mark all affected industries as dirty (after refresh)
+            for industry_idx in affected_industries:
+                display_row = self.main_window.table_model._original_indices.index(industry_idx)
+                self.main_window.table_model.mark_row_dirty(display_row)
+
             QMessageBox.information(self, "Replace All",
                 f"{action} {len(matches)} tag occurrences across {unique_industries} industries.")
             self.main_window.statusBar().showMessage(
                 f"{action} {len(matches)} tag occurrences", 5000
             )
-
-            # Mark all affected industries as dirty (convert to display rows after refresh)
-            for industry_idx in affected_industries:
-                display_row = self.main_window.table_model._original_indices.index(industry_idx)
-                self.main_window.table_model.mark_row_dirty(display_row)
         else:
             # Replace all column occurrences
             for original_index in matches:
@@ -389,17 +402,21 @@ class FindReplaceDialog(QDialog):
                 elif field_name == "Local Name":
                     industry.replaceLocalName(replace_text)
 
-            QMessageBox.information(self, "Replace All", f"Replaced {len(matches)} occurrences.")
-            self.main_window.statusBar().showMessage(f"Replaced {len(matches)} occurrences", 5000)
+            # Refresh the table FIRST
+            industry_data = [ind.to_dict() for ind in indFile1.industries]
+            self.main_window.table_model.update_data(industry_data)
 
-            # Mark all affected rows as dirty (convert to display rows after refresh)
+            # Refresh the Industry Detail Dialog if it's open
+            if self.main_window.open_detail_dialog is not None:
+                self.main_window.open_detail_dialog.refresh()
+
+            # Mark all affected rows as dirty (after refresh)
             for original_index in matches:
                 display_row = self.main_window.table_model._original_indices.index(original_index)
                 self.main_window.table_model.mark_row_dirty(display_row)
 
-        # Refresh the table
-        industry_data = [ind.to_dict() for ind in indFile1.industries]
-        self.main_window.table_model.update_data(industry_data)
+            QMessageBox.information(self, "Replace All", f"Replaced {len(matches)} occurrences.")
+            self.main_window.statusBar().showMessage(f"Replaced {len(matches)} occurrences", 5000)
 
         # Reset search
         self.reset_search()

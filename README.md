@@ -12,7 +12,7 @@ Please do **not** contact the developers at Run8 Studios for support with this t
 - View and edit industry configurations
 - Search and replace functionality for tags, local names, and symbols
 - Track-level editing and management
-- Producer configuration (car types, hours, capacity, outbound tags)
+- Producer configuration (car types, hours, capacity, processed tags)
 - Visual indicators for unsaved changes
 - Export configurations to new files
 

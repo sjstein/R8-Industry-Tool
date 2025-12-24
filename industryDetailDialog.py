@@ -89,6 +89,11 @@ class IndustryDetailDialog(QDialog):
         self.ui.save_button.clicked.connect(self.accept)
         self.ui.cancel_button.clicked.connect(self.reject)
 
+        # Add Ctrl+F shortcut for Find
+        from PySide6.QtGui import QShortcut, QKeySequence
+        find_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
+        find_shortcut.activated.connect(self.show_find_replace)
+
         # Set Update button as the default (activated by Enter key)
         self.ui.save_button.setDefault(True)
         self.ui.save_button.setAutoDefault(True)
@@ -112,8 +117,19 @@ class IndustryDetailDialog(QDialog):
         # Producers
         self.load_producers()
 
+    def refresh(self):
+        """Refresh the dialog with current industry data (called when data changes externally)"""
+        # Update window title in case name changed
+        self.setWindowTitle(f"Industry Details - {self.industry.name}")
+
+        # Reload all data
+        self.load_data()
+
     def load_tracks(self):
         """Load tracks into the table"""
+        # Clear the table first to avoid duplicates
+        self.ui.tracks_table.clearContents()
+
         if self.industry.number_of_tracks > 0:
             self.ui.tracks_table.setRowCount(self.industry.number_of_tracks)
             for i, track in enumerate(self.industry.track):
@@ -125,6 +141,9 @@ class IndustryDetailDialog(QDialog):
 
     def load_producers(self):
         """Load producers into the table"""
+        # Clear the table first to avoid duplicates
+        self.ui.producers_table.clearContents()
+
         if self.industry.num_producers > 0:
             # Sort producers alphabetically by car type name
             sorted_producers = sorted(
@@ -277,7 +296,8 @@ class IndustryDetailDialog(QDialog):
             self.ui.producers_table,
             self,
             main_window=main_window,
-            industry_row=self.industry_row
+            industry_row=self.industry_row,
+            cardict=self.cardict
         )
         dialog.show()
 
