@@ -10,7 +10,7 @@ from r8lib import IndustryFile, Industry
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QPushButton, QHBoxLayout, QWidget
 from PySide6.QtGui import QIcon
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal, QObject
 from mainWindow_ui import Ui_MainWindow
 from mainTable import DictTableModel
 from industryDetailDialog import IndustryDetailDialog
@@ -71,6 +71,28 @@ INTLEN = 4
 BYTLEN = 1
 SHTLEN = 2
 UTFLEN = 2              # Length of UTF-16 char
+
+
+class UpdateChecker(QObject):
+    """Worker class for checking updates in background thread"""
+    # Define signals
+    update_found = Signal(str, str)  # (latest_version, release_url)
+    no_update = Signal()
+    error_occurred = Signal(str)  # (error_message)
+
+    def __init__(self):
+        super().__init__()
+
+    def check(self):
+        """Perform the update check (runs in background thread)"""
+        has_update, latest_version, release_url, error = check_for_updates()
+
+        if error:
+            self.error_occurred.emit(error)
+        elif has_update:
+            self.update_found.emit(latest_version, release_url)
+        else:
+            self.no_update.emit()
 
 
 class MainWindow(QMainWindow):
@@ -325,13 +347,17 @@ class MainWindow(QMainWindow):
 
     def check_updates_on_startup(self):
         """Check for updates on startup in background thread"""
-        def check_thread():
-            has_update, latest_version, release_url, error = check_for_updates()
-            # Use QTimer to safely update UI from thread
-            if has_update:
-                QTimer.singleShot(0, lambda: self.show_update_dialog(latest_version, release_url, auto_check=True))
+        # Create worker and keep reference to prevent garbage collection
+        self._startup_checker = UpdateChecker()
 
-        # Run check in background thread to not block UI
+        # Connect signals to slots (auto_check=True)
+        self._startup_checker.update_found.connect(lambda v, u: self.show_update_dialog(v, u, auto_check=True))
+        # For startup check, we silently ignore errors and "no update" results
+
+        # Run check in background thread
+        def check_thread():
+            self._startup_checker.check()
+
         thread = threading.Thread(target=check_thread, daemon=True)
         thread.start()
 
@@ -340,31 +366,40 @@ class MainWindow(QMainWindow):
         # Show status message
         self.statusBar().showMessage('Checking for updates...', 3000)
 
-        def check_thread():
-            has_update, latest_version, release_url, error = check_for_updates()
-            # Use QTimer to safely update UI from thread
-            QTimer.singleShot(0, lambda: self.handle_manual_update_result(has_update, latest_version, release_url, error))
+        # Create worker and keep reference to prevent garbage collection
+        self._manual_checker = UpdateChecker()
+
+        # Connect signals to handler methods
+        self._manual_checker.update_found.connect(self.on_manual_update_found)
+        self._manual_checker.no_update.connect(self.on_manual_no_update)
+        self._manual_checker.error_occurred.connect(self.on_manual_update_error)
 
         # Run check in background thread
+        def check_thread():
+            self._manual_checker.check()
+
         thread = threading.Thread(target=check_thread, daemon=True)
         thread.start()
 
-    def handle_manual_update_result(self, has_update, latest_version, release_url, error):
-        """Handle the result of manual update check (called on main thread)"""
-        if error:
-            QMessageBox.warning(
-                self,
-                'Update Check Failed',
-                f'Could not check for updates:\n{error}\n\nPlease check your internet connection.'
-            )
-        elif has_update:
-            self.show_update_dialog(latest_version, release_url, auto_check=False)
-        else:
-            QMessageBox.information(
-                self,
-                'No Updates Available',
-                f'You are running the latest version ({VERSION}).'
-            )
+    def on_manual_update_found(self, latest_version, release_url):
+        """Handle update found signal from manual check"""
+        self.show_update_dialog(latest_version, release_url, auto_check=False)
+
+    def on_manual_no_update(self):
+        """Handle no update signal from manual check"""
+        QMessageBox.information(
+            self,
+            'No Updates Available',
+            f'You are running the latest version ({VERSION}).'
+        )
+
+    def on_manual_update_error(self, error_message):
+        """Handle error signal from manual check"""
+        QMessageBox.warning(
+            self,
+            'Update Check Failed',
+            f'Could not check for updates:\n{error_message}\n\nPlease check your internet connection.'
+        )
 
     def show_update_dialog(self, latest_version, release_url, auto_check=True):
         """Show dialog notifying user of available update"""

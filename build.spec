@@ -17,6 +17,8 @@ a = Analysis(
         'PySide6.QtCore',
         'PySide6.QtGui',
         'PySide6.QtWidgets',
+        'packaging',
+        'packaging.version',
     ],
     hookspath=[],
     hooksconfig={},
