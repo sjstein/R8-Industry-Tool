@@ -4,7 +4,7 @@ Called automatically by build.bat
 """
 from datetime import datetime
 
-VERSION = "1.0.3"
+VERSION = "1.0.5"
 BUILD_DATE = datetime.now().strftime("%Y-%m-%d %H:%M")
 
 version_content = f'''"""
