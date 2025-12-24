@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 
 
 class IndustryFindReplaceDialog(QDialog):
-    def __init__(self, industry, producers_table, parent=None, main_window=None, industry_row=None):
+    def __init__(self, industry, producers_table, parent=None, main_window=None, industry_row=None, cardict=None):
         super().__init__(parent)
         self.setWindowTitle(f"Find and Replace Tags - {industry.name}")
         self.setModal(False)  # Allow interaction with parent dialog
@@ -17,6 +17,7 @@ class IndustryFindReplaceDialog(QDialog):
         self.parent_dialog = parent
         self.main_window = main_window
         self.industry_row = industry_row
+        self.cardict = cardict or {}
         self.current_match_index = -1
         self.matches = []
 
@@ -24,7 +25,7 @@ class IndustryFindReplaceDialog(QDialog):
         main_layout = QVBoxLayout(self)
 
         # Search criteria group
-        criteria_group = QGroupBox("Search in Outbound Tags")
+        criteria_group = QGroupBox("Search in Processed Tags")
         criteria_layout = QFormLayout()
 
         # Find what
@@ -78,6 +79,15 @@ class IndustryFindReplaceDialog(QDialog):
         self.matches = []
         self.replace_button.setEnabled(False)
 
+    def find_table_row_for_producer(self, bIndex):
+        """Find the table row for a producer with the given bIndex (car type ID)"""
+        # Search through table rows to find the one with matching bIndex in column 0
+        for row in range(self.producers_table.rowCount()):
+            item = self.producers_table.item(row, 0)  # Column 0 contains bIndex
+            if item and int(item.text()) == bIndex:
+                return row
+        return -1  # Not found
+
     def find_tag_matches(self, search_text):
         """Find all exact tag matches in this industry"""
         matches = []
@@ -90,6 +100,13 @@ class IndustryFindReplaceDialog(QDialog):
                             'producer_idx': producer_idx,
                             'tag_idx': tag_idx
                         })
+
+        # Sort matches by car type name (same order as table display)
+        matches.sort(key=lambda m: self.cardict.get(
+            str(self.industry.producer[m['producer_idx']].bIndex),
+            "Unknown"
+        ).lower())
+
         return matches
 
     def find_next(self):
@@ -112,11 +129,23 @@ class IndustryFindReplaceDialog(QDialog):
         self.current_match_index = (self.current_match_index + 1) % len(self.matches)
         match = self.matches[self.current_match_index]
 
-        # Select the producer row in the table
-        self.producers_table.selectRow(match['producer_idx'])
-        self.producers_table.scrollToItem(
-            self.producers_table.item(match['producer_idx'], 0)
-        )
+        # Find the table row for this producer (table is sorted, so row != producer_idx)
+        producer = self.industry.producer[match['producer_idx']]
+        table_row = self.find_table_row_for_producer(producer.bIndex)
+
+        if table_row >= 0:
+            # Select the producer row in the table and the tags cell
+            self.producers_table.setCurrentCell(table_row, 2)  # Column 2 is tags
+            self.producers_table.scrollToItem(
+                self.producers_table.item(table_row, 0)
+            )
+
+            # Enter edit mode and highlight just the search text
+            self.producers_table.editItem(self.producers_table.item(table_row, 2))
+
+            # Delay selection to run after the delegate has set up the editor
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(0, lambda: self._select_found_tag(table_row, search_text))
 
         # Enable replace button
         self.replace_button.setEnabled(True)
@@ -153,7 +182,9 @@ class IndustryFindReplaceDialog(QDialog):
 
         # Mark the industry as dirty in the main window
         if self.main_window and self.industry_row is not None:
-            self.main_window.table_model.mark_row_dirty(self.industry_row)
+            # Convert original index to display row
+            display_row = self.main_window.table_model._original_indices.index(self.industry_row)
+            self.main_window.table_model.mark_row_dirty(display_row)
 
         # Remove this match from the list
         self.matches.pop(self.current_match_index)
@@ -221,9 +252,15 @@ class IndustryFindReplaceDialog(QDialog):
         for producer_idx in affected_producers:
             self.refresh_producer_row(producer_idx)
 
+        # Also refresh the parent detail dialog to ensure everything updates
+        if self.parent_dialog is not None:
+            self.parent_dialog.load_producers()
+
         # Mark the industry as dirty in the main window
         if self.main_window and self.industry_row is not None:
-            self.main_window.table_model.mark_row_dirty(self.industry_row)
+            # Convert original index to display row
+            display_row = self.main_window.table_model._original_indices.index(self.industry_row)
+            self.main_window.table_model.mark_row_dirty(display_row)
 
         # Reset search
         self.reset_search()
@@ -231,11 +268,37 @@ class IndustryFindReplaceDialog(QDialog):
         action = "Deleted" if not replace_text.strip() else "Replaced"
         QMessageBox.information(self, "Replace All", f"{action} {len(matches)} tag occurrences.")
 
+    def _select_found_tag(self, table_row, search_text):
+        """Select only the found tag in the editor, not the entire cell"""
+        from PySide6.QtWidgets import QLineEdit
+
+        # Get the cell editor
+        editor = self.producers_table.cellWidget(table_row, 2)
+        if editor is None:
+            editor = self.producers_table.findChild(QLineEdit)
+
+        if editor and isinstance(editor, QLineEdit):
+            # Find position of search text in comma-separated tags
+            tags_text = self.producers_table.item(table_row, 2).text()
+            tags_list = [tag.strip() for tag in tags_text.split(',')]
+
+            pos = 0
+            for tag in tags_list:
+                if tag == search_text:
+                    # Found it - select this tag only
+                    editor.setSelection(pos, len(search_text))
+                    break
+                pos += len(tag) + 2  # +2 for ", " separator
+
     def refresh_producer_row(self, producer_idx):
         """Refresh the tags display for a specific producer row"""
         producer = self.industry.producer[producer_idx]
         tags_str = producer.returnTags() if producer.num_tags > 0 else ""
 
-        # Update the tags cell (column 2)
-        from PySide6.QtWidgets import QTableWidgetItem
-        self.producers_table.setItem(producer_idx, 2, QTableWidgetItem(tags_str))
+        # Find the table row for this producer (table is sorted, so row != producer_idx)
+        table_row = self.find_table_row_for_producer(producer.bIndex)
+
+        if table_row >= 0:
+            # Update the tags cell (column 2)
+            from PySide6.QtWidgets import QTableWidgetItem
+            self.producers_table.setItem(table_row, 2, QTableWidgetItem(tags_str))

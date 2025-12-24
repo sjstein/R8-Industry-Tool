@@ -85,6 +85,11 @@ class Ui_IndustryDetailDialog(object):
 
         self.tracksGroup = QGroupBox(self.scrollAreaWidgetContents)
         self.tracksGroup.setObjectName(u"tracksGroup")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.tracksGroup.sizePolicy().hasHeightForWidth())
+        self.tracksGroup.setSizePolicy(sizePolicy)
         self.verticalLayout_3 = QVBoxLayout(self.tracksGroup)
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.tracks_table = QTableWidget(self.tracksGroup)
@@ -97,6 +102,7 @@ class Ui_IndustryDetailDialog(object):
         __qtablewidgetitem2 = QTableWidgetItem()
         self.tracks_table.setHorizontalHeaderItem(2, __qtablewidgetitem2)
         self.tracks_table.setObjectName(u"tracks_table")
+        self.tracks_table.setMaximumSize(QSize(16777215, 120))
         self.tracks_table.setColumnCount(3)
 
         self.verticalLayout_3.addWidget(self.tracks_table)
@@ -120,6 +126,11 @@ class Ui_IndustryDetailDialog(object):
 
         self.producersGroup = QGroupBox(self.scrollAreaWidgetContents)
         self.producersGroup.setObjectName(u"producersGroup")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(1)
+        sizePolicy1.setHeightForWidth(self.producersGroup.sizePolicy().hasHeightForWidth())
+        self.producersGroup.setSizePolicy(sizePolicy1)
         self.verticalLayout_4 = QVBoxLayout(self.producersGroup)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.producers_table = QTableWidget(self.producersGroup)
